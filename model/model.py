@@ -82,14 +82,23 @@ class BiDAF(nn.Module):
             batch_size = x.size(0)
             # (batch, seq_len, word_len, char_dim)
             x = self.dropout(self.char_emb(x))
+            
             # (batch， seq_len, char_dim, word_len)
             x = x.transpose(2, 3)
+            
             # (batch * seq_len, 1, char_dim, word_len)
             x = x.view(-1, self.args.char_dim, x.size(3)).unsqueeze(1)
-            # (batch * seq_len, char_channel_size, 1, conv_len) -> (batch * seq_len, char_channel_size, conv_len)
+            
+            # (batch * seq_len, 1, char_dim, word_len) ->
+            # (batch * seq_len, char_channel_size, 1, conv_len) -> 
+            # (batch * seq_len, char_channel_size, conv_len)
             x = self.char_conv(x).squeeze()
-            # (batch * seq_len, char_channel_size, 1) -> (batch * seq_len, char_channel_size)
-            x = F.max_pool1d(x, x.size(2)).squeeze()
+            
+            # (batch * seq_len, char_channel_size, conv_len) ->
+            # (batch * seq_len, char_channel_size, 1) ->
+            # (batch * seq_len, char_channel_size)
+            x = F.max_pool1d(x, x.size(2)).squeeze() # 通过max pool和word embedding的shape一致
+            
             # (batch, seq_len, char_channel_size)
             x = x.view(batch_size, -1, self.args.char_channel_size)
 
